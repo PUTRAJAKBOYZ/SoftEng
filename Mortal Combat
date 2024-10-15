@@ -1,0 +1,77 @@
+import random
+
+class Character:
+    def __init__(self, name, hp, attack_power):
+        self.name = name
+        self.hp = hp
+        self.attack_power = attack_power
+
+    def attack(self, opponent):
+        damage = random.randint(1, self.attack_power)
+        opponent.hp -= damage
+        print(f"{self.name} attacks {opponent.name} for {damage} damage!")
+
+    def is_alive(self):
+        return self.hp > 0
+
+def fatality(character):
+    fatality_moves = [
+        f"{character.name} wins... and delivers a crushing blow!",
+        f"{character.name} performs a brutal fatality!",
+        f"{character.name} finishes with a spectacular move!",
+        f"{character.name} ends the fight in style!",
+        f"{character.name} has claimed another soul!",
+        f"{character.name} delivers the final, fatal strike!",
+        f"{character.name} leaves no mercy for the defeated!",
+        f"{character.name} shows no mercy in victory!"
+    ]
+    return random.choice(fatality_moves)
+
+def fight(character1, character2):
+    print(f"\nFight between {character1.name} and {character2.name}!")
+
+    while character1.is_alive() and character2.is_alive():
+        character1.attack(character2)
+        if character2.is_alive():
+            character2.attack(character1)
+
+        print(f"{character1.name} HP: {character1.hp}")
+        print(f"{character2.name} HP: {character2.hp}")
+
+    if character1.is_alive():
+        print(f"{character1.name} wins!")
+        print(fatality(character1))
+    else:
+        print(f"{character2.name} wins!")
+        print(fatality(character2))
+
+def main():
+    # Contoh Karakter
+    scorpion = Character("Scorpion", 100, 20)
+    sub_zero = Character("Sub-Zero", 100, 18)
+    raiden = Character("Raiden", 120, 15)
+
+    print("Pilih karakter untuk bertarung:")
+    print("1. Scorpion")
+    print("2. Sub-Zero")
+    print("3. Raiden")
+
+    choice = input("Masukkan nomor karakter yang ingin Anda pilih (1/2/3): ")
+
+    if choice == "1":
+        player_character = scorpion
+    elif choice == "2":
+        player_character = sub_zero
+    elif choice == "3":
+        player_character = raiden
+    else:
+        print("Pilihan tidak valid. Menggunakan Scorpion sebagai default.")
+        player_character = scorpion
+
+    # AI karakter lawan
+    opponent_character = random.choice([sub_zero, raiden]) if player_character != sub_zero else random.choice([scorpion, raiden])
+
+    fight(player_character, opponent_character)
+
+if __name__ == "__main__":
+    main()
