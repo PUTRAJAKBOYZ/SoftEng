@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Sales Order</title>
+    <!-- Load SQL.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.1/sql-wasm.js"></script>
+    <script>
+        let db;
+
+        async function initDatabase() {
+            // Load the SQL.js library
+            const SQL = await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.1/${file}` });
+
+            // Create a new database
+            db = new SQL.Database();
+
+            // Create tables
+            db.run(`
+                CREATE TABLE Customer (customer_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT);
+                CREATE TABLE Product (product_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, price REAL);
+                CREATE TABLE Orders (order_id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, order_date TEXT);
+                CREATE TABLE OrderDetails (order_details_id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, product_id INTEGER, quantity INTEGER, discount REAL, subtotal REAL);
+            `);
+
+            // Insert sample data
+            db.run("INSERT INTO Customer (name) VALUES ('PT ABC')");
+            db.run("INSERT INTO Product (name, price) VALUES ('Battery', 50000), ('Charger', 100000)");
+            
+            loadCustomers();
+            loadProducts();
+        }
+
+        function loadCustomers() {
+            const customerSelect = document.getElementById("customer");
+            const customers = db.exec("SELECT * FROM Customer")[0].values;
+            customerSelect.innerHTML = customers.map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
+        }
+
+        function loadProducts() {
+            const productSelect = document.getElementById("product");
+            const products = db.exec("SELECT * FROM Product")[0].values;
+            productSelect.innerHTML = products.map(([id, name, price]) => `<option value="${id}" data-price="${price}">${name} - ${price}</option>`).join('');
+        }
+
+        function createOrder() {
+            const customerId = document.getElementById("customer").value;
+            const orderDate = new Date().toISOString().split('T')[0];
+            db.run("INSERT INTO Orders (customer_id, order_date) VALUES (?, ?)", [customerId, orderDate]);
+            const orderId = db.exec("SELECT last_insert_rowid()")[0].values[0][0];
+            document.getElementById("orderId").value = orderId;
+            alert("Order created successfully with ID: " + orderId);
+        }
+
+        function addProductToOrder() {
+            const orderId = document.getElementById("orderId").value;
+            const productId = document.getElementById("product").value;
+            const quantity = parseInt(document.getElementById("quantity").value, 10);
+            const discount = parseFloat(document.getElementById("discount").value || "0");
+
+            // Get product price
+            const price = parseFloat(document.getElementById("product").selectedOptions[0].dataset.price);
+            const subtotal = quantity * price * (1 - discount / 100);
+
+            // Insert into OrderDetails
+            db.run("INSERT INTO OrderDetails (order_id, product_id, quantity, discount, subtotal) VALUES (?, ?, ?, ?, ?)",
+                   [orderId, productId, quantity, discount, subtotal]);
+
+            alert("Product added to order with subtotal: " + subtotal);
+            document.getElementById("subtotal").innerText = `Subtotal: ${subtotal}`;
+        }
+
+        function calculateTotal() {
+            const orderId = document.getElementById("orderId").value;
+            const result = db.exec("SELECT SUM(subtotal) as total FROM OrderDetails WHERE order_id = ?", [orderId]);
+            const total = result[0].values[0][0];
+            document.getElementById("total").innerText = `Total: ${total}`;
+        }
+        
+        // Initialize the database when the page loads
+        window.onload = initDatabase;
+    </script>
+</head>
+<body>
+    <h1>Customer Sales Order</h1>
+
+    <section>
+        <h2>Create Order</h2>
+        <label for="customer">Customer:</label>
+        <select id="customer"></select>
+        <button onclick="createOrder()">Create Order</button>
+    </section>
+
+    <section>
+        <h2>Add Product to Order</h2>
+        <label for="orderId">Order ID:</label>
+        <input type="text" id="orderId" readonly><br>
+
+        <label for="product">Product:</label>
+        <select id="product"></select><br>
+
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity" min="1" required><br>
+
+        <label for="discount">Discount (%):</label>
+        <input type="number" id="discount" min="0" max="100"><br>
+
+        <button onclick="addProductToOrder()">Add Product</button>
+        <p id="subtotal">Subtotal: </p>
+    </section>
+
+    <section>
+        <h2>Calculate Total</h2>
+        <button onclick="calculateTotal()">Calculate Total</button>
+        <p id="total">Total: </p>
+    </section>
+</body>
+</html>
